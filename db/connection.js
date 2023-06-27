@@ -7,3 +7,5 @@ const connection = mysql.createConnection({
   password: 'root',
   database: 'beer_me_db'
 });
+
+module.exports = db;
