@@ -16,7 +16,7 @@ function beer_employer_tracker() {
                 console.table(result);
                 beer_employer_tracker();
             });
-        } 
+        }
         else if (answers.prompt === 'View All Roles') {
             db.query(`SELECT * FROM beer_role_table`, (err, result) => {
                 if (err) throw err;
@@ -47,90 +47,50 @@ function beer_employer_tracker() {
             })
         }
         else if (answers.prompt === 'Add A Role') {
-            db.query(`SELECT * FROM beer_depo_table`, (err, result) => {
-                if (err) throw err;
-                let role_to_add = undefined;
-                let salary_to_add = undefined;
-                let department_name_to_add = undefined;
-                let department_id_to_add = undefined;
-                inquirer.prompt([{
+            inquirer.prompt([
+                {
                     type: 'input',
                     name: 'role',
-                    message: 'What is the name of the new role to add?'
-                }]).then((answers) => {
-                    role_to_add = answers.role;
-                });
-                inquirer.prompt([{
+                    message: "What new role do you want to add?",
+                    validate: add_role => {
+                        if (add_role) {
+                            return true;
+                        } else {
+                            console.log('Please enter a role, thank you!');
+                            return false;
+                        }
+                    }
+                },
+                {
                     type: 'input',
                     name: 'salary',
-                    message: 'What is the salary of the new role to add?'
-                }]).then((answers) => {
-                    salary_to_add = answers.salary;
+                    message: "How much is the salary of this new role?"
+                }
+            ]).then(answer => {
+                const params = [answer.role, answer.salary];
+                db.query(`SELECT department_name, id FROM beer_depo_table`, (err, data) => {
+                    if (err) throw err;
+                    const dept = data.map(({ name, id }) => ({ name: name, value: id }));
+                    inquirer.prompt([
+                        {
+                            type: 'list',
+                            name: 'department',
+                            message: "What department is this role in?",
+                            choices: dept
+                        }
+                    ]).then(dept_choice => {
+                        const dept = dept_choice.department;
+                        params.push(dept);
+                        db.query(`INSERT INTO beer_role_table (title, salary, department_id)
+                                VALUES (?, ?, ?)`, params, (err, result) => {
+                            if (err) throw err;
+                            console.log('Added ' + answer.role + " to the database");
+                            beer_employer_tracker();
+                        });
+                    });
                 });
-                inquirer.prompt([{
-                    type: 'input',
-                    name: 'department',
-                    message: 'Which department does this new role belong to? Please use exact departments that were already created!'
-                }]).then((answers) => {
-                    department_name_to_add = answers.department;
-                    for (var i = 0; i < result.length; i++) {
-                        if (result[i].name === department_name_to_add) {
-                            department_id_to_add = result[i];
-                        }
-                    }
-                    db.query(`INSERT INTO beer_role_table (title, salary, department_id) VALUES (?, ?, ?)`, [role_to_add, salary_to_add, department_id_to_add], (err, result) => {
-                        if (err) throw err;
-                        console.log(`Added ${role_to_add} to the database.`)
-                        beer_employer_tracker();
-                    });
-                })
-                /*inquirer.prompt([
-                    {
-                        type: 'input',
-                        name: 'role',
-                        message: 'What is the name of the role to add?',
-                        validate: roleInput => {
-                            if (roleInput) {
-                                return true;
-                            } else {
-                                console.log('Please Add A Role!');
-                                return false;
-                            }
-                        }
-                    },
-                    {
-                        type: 'input',
-                        name: 'salary',
-                        message: 'What is the salary of the role?'
-                    },
-                    {
-                        type: 'list',
-                        name: 'department',
-                        message: 'Which department does this role belong to?',
-                        choices: () => {
-                            var array = [];
-                            for (var i = 0; i < result.length; i++) {
-                                array.push(result[i].name);
-                            }
-                            return array;
-                        }
-                    }
-                ]).then((answers) => {
-                    console.log("salary is:");
-                    console.log(answers.salary);
-                    for (var i = 0; i < result.length; i++) {
-                        if (result[i].name === answers.department) {
-                            var department = result[i];
-                        }
-                    }
-
-                    db.query(`INSERT INTO beer_role_table (title, salary, department_id) VALUES (?, ?, ?)`, [answers.role, answers.salary, department.id], (err, result) => {
-                        if (err) throw err;
-                        console.log(`Added ${answers.role} to the database.`)
-                        beer_employer_tracker();
-                    });
-                })*/
             });
+
         }
         else if (answers.prompt === 'Add An Employee') {
             db.query(`SELECT * FROM beer_employee_table, beer_role_table`, (err, result) => {
